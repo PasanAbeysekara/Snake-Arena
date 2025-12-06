@@ -1,0 +1,58 @@
+# Cabal build artifacts
+dist/
+dist-newstyle/
+cabal-dev/
+.cabal-sandbox/
+cabal.sandbox.config
+cabal.project.local
+cabal.project.local~
+
+# Stack build artifacts
+.stack-work/
+stack.yaml.lock
+
+# GHC and Haskell
+*.hi
+*.o
+*.p_hi
+*.p_o
+*.dyn_hi
+*.dyn_o
+*.prof
+*.aux
+*.hp
+*.eventlog
+.HTF/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.code-workspace
+.history/
+
+# Game-specific files
+replays/
+*.replay
+game_logs/
+
+# System files
+.Trash-*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+
+# OS generated files
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
