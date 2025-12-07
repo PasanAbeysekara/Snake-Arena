@@ -27,3 +27,17 @@ loadReplay path = do
 -- | Initialize or Check storage (Optional)
 initStorage :: IO ()
 initStorage = return ()
+
+-- | Save high score to file
+saveHighScore :: Int -> IO ()
+saveHighScore score = writeFile "highscore.dat" (show score)
+
+-- | Load high score from file, return 0 if file doesn't exist
+loadHighScore :: IO Int
+loadHighScore = do
+  result <- try (readFile "highscore.dat") :: IO (Either IOException String)
+  case result of
+    Left _ -> return 0
+    Right content -> case reads content of
+      [(s, "")] -> return s
+      _         -> return 0

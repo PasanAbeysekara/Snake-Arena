@@ -7,8 +7,8 @@ import Data.Ord (comparing)
 
 -- | Window / Screen constants
 windowWidth, windowHeight :: Int
-windowWidth = 800
-windowHeight = 600
+windowWidth = 1200
+windowHeight = 800
 
 cellPixelSize :: Int
 cellPixelSize = 20
