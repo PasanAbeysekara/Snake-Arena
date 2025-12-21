@@ -19,7 +19,7 @@ main = do
   -- Grid calculation: 
   -- Width: (1200 - 80) / 20 = 56 cells (40px walls on each side)
   -- Height: (800 - 140) / 20 = 33 cells (40px bottom + 100px top for HUD)
-  let initState = (initialState 56 33 gen) { status = Menu, hiScore = savedHighScore }
+  let initState = (initialState 56 33 gen Normal) { status = Menu, hiScore = savedHighScore }
   -- Use playIO for side effects (saving replays, loading stats)
   playIO window background 60 initState renderIO handleInputIO updateIO
 
@@ -58,9 +58,9 @@ renderMenu gs = pictures
       ]
     
     renderMenuOptions = pictures
-      [ renderButton 80 (makeColorI 50 200 50 255) "1" "EASY MODE" "Relaxed pace for beginners"
-      , renderButton 0 (makeColorI 255 200 50 255) "2" "NORMAL MODE" "Balanced challenge"
-      , renderButton (-80) (makeColorI 255 50 50 255) "3" "HARD MODE" "Lightning fast!"
+      [ renderButton 80 (makeColorI 50 200 50 255) "1" "EASY MODE" "Speed: Slow | Score: 1x | Obstacles: Every 100pts"
+      , renderButton 0 (makeColorI 255 200 50 255) "2" "NORMAL MODE" "Speed: Medium | Score: 2x | Obstacles: Every 70pts"
+      , renderButton (-80) (makeColorI 255 50 50 255) "3" "HARD MODE" "Speed: Fast | Score: 3x | Obstacles: Every 40pts"
       , color (makeColorI 100 200 255 255) $ translate (-200) (-180) $ scale 0.18 0.18 $ text "Press L: View Analytics"
       ]
     
@@ -248,7 +248,21 @@ renderHUD gs = pictures
       , color (makeColorI 255 255 255 255) $ translate (-280) (fromIntegral windowHeight / 2 - 95) $ scale 0.25 0.25 $ text $ show (hiScore gs)
       , color (makeColorI 100 255 255 255) $ translate 180 (fromIntegral windowHeight / 2 - 65) $ scale 0.2 0.2 $ text "LENGTH"
       , color white $ translate 180 (fromIntegral windowHeight / 2 - 95) $ scale 0.25 0.25 $ text $ show (length $ snake gs)
+      , renderDifficultyIndicator gs
       ]
+    
+    renderDifficultyIndicator gs = 
+      let (diffColor, diffText) = case difficulty gs of
+                                    Easy -> (makeColorI 50 200 50 255, "EASY")
+                                    Normal -> (makeColorI 255 200 50 255, "NORMAL")
+                                    Hard -> (makeColorI 255 50 50 255, "HARD")
+      in pictures
+        [ color diffColor $ translate 420 (fromIntegral windowHeight / 2 - 65) $ scale 0.18 0.18 $ text diffText
+        , color diffColor $ translate 420 (fromIntegral windowHeight / 2 - 85) $ scale 0.12 0.12 $ text $ case difficulty gs of
+            Easy -> "x1 Score"
+            Normal -> "x2 Score"
+            Hard -> "x3 Score"
+        ]
     
     renderPowerUpStatus gs = case activePower gs of
       Nothing -> blank
@@ -346,9 +360,9 @@ updateIO dt gs = do
 -- | Input Loop with IO
 handleInputIO :: Event -> GameState -> IO GameState
 handleInputIO event gs = case (status gs, event) of
-  (Menu, EventKey (Char '1') Down _ _) -> return $ startGame gs 0.20
-  (Menu, EventKey (Char '2') Down _ _) -> return $ startGame gs 0.15
-  (Menu, EventKey (Char '3') Down _ _) -> return $ startGame gs 0.08
+  (Menu, EventKey (Char '1') Down _ _) -> return $ startGame gs Easy
+  (Menu, EventKey (Char '2') Down _ _) -> return $ startGame gs Normal
+  (Menu, EventKey (Char '3') Down _ _) -> return $ startGame gs Hard
   
   (Menu, EventKey (Char 'l') Down _ _) -> do
     -- Load Analytics
@@ -378,11 +392,11 @@ handleInputIO event gs = case (status gs, event) of
   
   _ -> return gs
 
-startGame :: GameState -> Float -> GameState
-startGame oldGs spd =
+startGame :: GameState -> Difficulty -> GameState
+startGame oldGs diff =
   let w = 56  -- Match the grid size
       h = 33  -- Adjusted for proper wall alignment
       g = rng oldGs
       savedHiScore = hiScore oldGs  -- Preserve high score
-      newState = initialState w h g
-  in newState { curSpeed = spd, hiScore = savedHiScore }
+      newState = initialState w h g diff
+  in newState { hiScore = savedHiScore }

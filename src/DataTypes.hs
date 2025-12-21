@@ -11,6 +11,10 @@ data Direction = U | D | L | R
 data PowerType = SpeedBoost | ScoreMultiplier
   deriving (Show, Eq)
 
+-- | Difficulty levels
+data Difficulty = Easy | Normal | Hard
+  deriving (Show, Eq, Read)
+
 -- | Coordinates on the grid (x, y)
 type Position = (Int, Int)
 
@@ -40,6 +44,7 @@ data GameState = GameState
   , activePower :: Maybe PowerType
   , moveHistory :: [Direction]    -- History of moves for replay
   , obstacles   :: [Position]     -- Obstacle positions that snake cannot pass
+  , difficulty  :: Difficulty     -- Current difficulty level
   }
 
 -- | Replay data structure for storage

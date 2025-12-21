@@ -5,10 +5,14 @@ import Utils
 import System.Random (StdGen, randomR, split)
 
 -- | Initial game state
-initialState :: Int -> Int -> StdGen -> GameState
-initialState w h gen =
+initialState :: Int -> Int -> StdGen -> Difficulty -> GameState
+initialState w h gen diff =
   let (startPos, gen1) = randomPos w h gen
       (food, gen2) = randomPos w h gen1
+      baseSpeed = case diff of
+                    Easy -> 0.20
+                    Normal -> 0.15
+                    Hard -> 0.08
   in GameState
      { snake = [startPos, (fst startPos, snd startPos - 1)]
      , dir = U
@@ -22,11 +26,12 @@ initialState w h gen =
      , status = Running
      , rng = gen2
      , timeSinceMove = 0.0
-     , curSpeed = 0.15
+     , curSpeed = baseSpeed
      , powerTimer = 0.0
      , activePower = Nothing
      , moveHistory = []
      , obstacles = []
+     , difficulty = diff
      }
 
 -- | Handle input events to change direction
@@ -51,9 +56,15 @@ step dt gs
           newPowerTimer = max 0 (powerTimer gs - dt)
           active = if newPowerTimer == 0 then Nothing else activePower gs
           -- Reset speed if powerup expires
-          baseSpeed = 0.15
+          baseSpeed = case difficulty gs of
+                        Easy -> 0.20
+                        Normal -> 0.15
+                        Hard -> 0.08
           speed = case active of
-                    Just SpeedBoost -> 0.08
+                    Just SpeedBoost -> case difficulty gs of
+                                         Easy -> 0.10
+                                         Normal -> 0.08
+                                         Hard -> 0.05
                     _ -> baseSpeed
       in if newTime >= speed
          then advanceGameState (gs { timeSinceMove = 0, powerTimer = newPowerTimer, activePower = active })
@@ -91,8 +102,14 @@ advanceGameState gs =
      else let
             (newRng, newFood, newPowerPos) = spawnItems ateFood atePower gs
             
-            scoreMult = if activePower gs == Just ScoreMultiplier then 2 else 1
-            newScore = score gs + (if ateFood then 10 * scoreMult else 0)
+            -- Difficulty multiplier for base score
+            diffMult = case difficulty gs of
+                         Easy -> 1
+                         Normal -> 2
+                         Hard -> 3
+            -- PowerUp multiplier
+            powerMult = if activePower gs == Just ScoreMultiplier then 2 else 1
+            newScore = score gs + (if ateFood then 10 * diffMult * powerMult else 0)
             
             newActivePower = if atePower
                              then case powerPos gs of
@@ -100,7 +117,12 @@ advanceGameState gs =
                                     Nothing -> activePower gs
                              else activePower gs
             
-            newPowerTimer = if atePower then 10.0 else powerTimer gs
+            -- Difficulty-based power-up duration
+            powerDuration = case difficulty gs of
+                              Easy -> 12.0
+                              Normal -> 10.0
+                              Hard -> 8.0
+            newPowerTimer = if atePower then powerDuration else powerTimer gs
             
             -- Generate obstacles based on score milestones
             newObstacles = generateObstacles gs newScore newRng
@@ -170,12 +192,17 @@ obstacleShapes =
     [(0,0), (1,0), (2,0), (0,1), (0,2)]
   ]
 
--- | Generate obstacles based on score milestones (every 50 points adds new shape)
+-- | Generate obstacles based on score milestones (difficulty-based intervals)
 generateObstacles :: GameState -> Int -> StdGen -> [Position]
 generateObstacles gs newScore gen =
   let currentShapeCount = length (obstacles gs) `div` 4  -- Approximate shape count
+      -- Difficulty-based obstacle parameters
+      (scoreInterval, maxShapes) = case difficulty gs of
+                                     Easy -> (100, 4)   -- 1 shape every 100 points, max 4
+                                     Normal -> (70, 6)  -- 1 shape every 70 points, max 6
+                                     Hard -> (40, 10)   -- 1 shape every 40 points, max 10
       -- Calculate how many shapes should exist based on score
-      targetShapeCount = min 8 (newScore `div` 50)  -- Max 8 shapes, 1 new per 50 points
+      targetShapeCount = min maxShapes (newScore `div` scoreInterval)
       
   in if targetShapeCount > currentShapeCount
      then 
