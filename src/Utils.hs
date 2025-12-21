@@ -22,10 +22,12 @@ gridToScreen (gx, gy) =
   )
 
 -- | Get a random position within grid bounds
+-- Excludes wall boundaries (2 cells margin on each side)
 randomPos :: Int -> Int -> StdGen -> (Position, StdGen)
 randomPos w h gen =
-  let (rx, gen1) = randomR (-w `div` 2, w `div` 2 - 1) gen
-      (ry, gen2) = randomR (-h `div` 2, h `div` 2 - 1) gen1
+  let margin = 2  -- Keep 2 cells away from walls
+      (rx, gen1) = randomR (-w `div` 2 + margin, w `div` 2 - margin - 1) gen
+      (ry, gen2) = randomR (-h `div` 2 + margin, h `div` 2 - margin - 1) gen1
   in ((rx, ry), gen2)
 
 -- | Check if a position is inside the grid
