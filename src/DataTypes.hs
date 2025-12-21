@@ -39,6 +39,7 @@ data GameState = GameState
   , powerTimer  :: Float          -- Time remaining for active power-up
   , activePower :: Maybe PowerType
   , moveHistory :: [Direction]    -- History of moves for replay
+  , obstacles   :: [Position]     -- Obstacle positions that snake cannot pass
   }
 
 -- | Replay data structure for storage

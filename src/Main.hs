@@ -16,7 +16,10 @@ main :: IO ()
 main = do
   gen <- newStdGen
   savedHighScore <- loadHighScore
-  let initState = (initialState 40 30 gen) { status = Menu, hiScore = savedHighScore }
+  -- Grid calculation: 
+  -- Width: (1200 - 80) / 20 = 56 cells (40px walls on each side)
+  -- Height: (800 - 140) / 20 = 33 cells (40px bottom + 100px top for HUD)
+  let initState = (initialState 56 33 gen) { status = Menu, hiScore = savedHighScore }
   -- Use playIO for side effects (saving replays, loading stats)
   playIO window background 60 initState renderIO handleInputIO updateIO
 
@@ -93,7 +96,8 @@ renderMenuBorder = pictures
 renderGame :: GameState -> Picture
 renderGame gs = pictures
   [ renderBackground
-  , renderGameBorder
+  , renderBrickWalls
+  , renderObstacles gs
   , renderSnake gs
   , renderFood gs
   , renderPowerUp gs
@@ -109,9 +113,68 @@ renderBackground = pictures
 
 renderGameBorder :: Picture
 renderGameBorder = pictures
-  [ color (makeColorI 50 150 255 255) $ thickRectangle (fromIntegral windowWidth - 40) (fromIntegral windowHeight - 140) 5
-  , color (makeColorI 100 180 255 150) $ thickRectangle (fromIntegral windowWidth - 50) (fromIntegral windowHeight - 150) 2
+  [ color (makeColorI 50 150 255 255) $ thickRectangle (fromIntegral windowWidth - 100) (fromIntegral windowHeight - 220) 3
+  , color (makeColorI 100 180 255 100) $ thickRectangle (fromIntegral windowWidth - 110) (fromIntegral windowHeight - 230) 2
   ]
+
+-- Render brick wall border
+renderBrickWalls :: Picture
+renderBrickWalls = 
+  let w = fromIntegral windowWidth
+      h = fromIntegral windowHeight
+      borderThickness = 40
+      brickW = 30
+      brickH = 15
+  in pictures
+    [ renderWallSide (-w/2 + borderThickness/2) 0 borderThickness h brickW brickH -- Left
+    , renderWallSide (w/2 - borderThickness/2) 0 borderThickness h brickW brickH  -- Right
+    , renderWallSide 0 (h/2 - 70 - borderThickness/2) w borderThickness brickW brickH -- Top
+    , renderWallSide 0 (-h/2 + borderThickness/2) w borderThickness brickW brickH     -- Bottom
+    ]
+
+renderWallSide :: Float -> Float -> Float -> Float -> Float -> Float -> Picture
+renderWallSide x y width height brickW brickH =
+  let rows = ceiling (height / brickH) :: Int
+      cols = ceiling (width / brickW) :: Int
+      bricks = [ renderBrick (x + fromIntegral c * brickW - width/2) 
+                            (y + fromIntegral r * brickH - height/2) 
+                            brickW brickH (r `mod` 2 == 0)
+               | r <- [0..rows-1], c <- [0..cols-1] ]
+  in pictures bricks
+
+renderBrick :: Float -> Float -> Float -> Float -> Bool -> Picture
+renderBrick x y w h offset =
+  let xOffset = if offset then w/2 else 0
+      baseColor = makeColorI 120 60 30 255    -- Brown
+      darkColor = makeColorI 80 40 20 255     -- Dark brown
+      lightColor = makeColorI 140 70 35 255   -- Light brown
+  in pictures
+    [ color baseColor $ translate (x + xOffset) y $ rectangleSolid (w - 2) (h - 2)
+    , color darkColor $ translate (x + xOffset) (y - h/2) $ rectangleSolid (w - 2) 1
+    , color darkColor $ translate (x + xOffset - w/2) y $ rectangleSolid 1 (h - 2)
+    , color lightColor $ translate (x + xOffset) (y + h/2) $ rectangleSolid (w - 2) 1
+    , color lightColor $ translate (x + xOffset + w/2) y $ rectangleSolid 1 (h - 2)
+    ]
+
+-- Render obstacles
+renderObstacles :: GameState -> Picture
+renderObstacles gs = pictures [renderObstacleBrick pos | pos <- obstacles gs]
+  where
+    renderObstacleBrick pos =
+      let (x, y) = gridToScreen pos
+          size = fromIntegral cellPixelSize
+          brickColor = makeColorI 100 50 25 255
+          shadowColor = makeColorI 50 25 12 255
+          highlightColor = makeColorI 150 75 37 255
+      in pictures
+        [ color shadowColor $ translate (x + 2) (y - 2) $ rectangleSolid size size
+        , color brickColor $ translate x y $ rectangleSolid size size
+        , color shadowColor $ translate x (y - size/2 + 2) $ rectangleSolid (size - 4) 4
+        , color shadowColor $ translate (x - size/2 + 2) y $ rectangleSolid 4 (size - 4)
+        , color highlightColor $ translate x (y + size/2 - 2) $ rectangleSolid (size - 4) 4
+        , color highlightColor $ translate (x + size/2 - 2) y $ rectangleSolid 4 (size - 4)
+        , color shadowColor $ translate x y $ rectangleWire size size
+        ]
 
 renderSnake :: GameState -> Picture
 renderSnake gs = case snake gs of
@@ -317,8 +380,8 @@ handleInputIO event gs = case (status gs, event) of
 
 startGame :: GameState -> Float -> GameState
 startGame oldGs spd =
-  let w = gridWidth oldGs
-      h = gridHeight oldGs
+  let w = 56  -- Match the grid size
+      h = 33  -- Adjusted for proper wall alignment
       g = rng oldGs
       savedHiScore = hiScore oldGs  -- Preserve high score
       newState = initialState w h g

@@ -14,10 +14,11 @@ cellPixelSize :: Int
 cellPixelSize = 20
 
 -- | Convert grid position to screen coordinates (center of the cell)
+-- Adjusted for asymmetric brick walls (top has HUD space)
 gridToScreen :: Position -> (Float, Float)
 gridToScreen (gx, gy) =
   ( fromIntegral gx * fromIntegral cellPixelSize
-  , fromIntegral gy * fromIntegral cellPixelSize
+  , fromIntegral gy * fromIntegral cellPixelSize - 30  -- Offset by 30 pixels to center vertically
   )
 
 -- | Get a random position within grid bounds
@@ -30,8 +31,10 @@ randomPos w h gen =
 -- | Check if a position is inside the grid
 inBounds :: Int -> Int -> Position -> Bool
 inBounds w h (x, y) =
-  x >= -w `div` 2 && x < w `div` 2 &&
-  y >= -h `div` 2 && y < h `div` 2
+  let halfW = w `div` 2
+      halfH = h `div` 2
+  in x > -halfW && x < halfW &&
+     y >= -halfH && y < halfH
 
 -- | Analytics
 aggregateStats :: [Replay] -> String
