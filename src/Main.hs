@@ -98,10 +98,13 @@ renderGame gs = pictures
   [ renderBackground
   , renderBrickWalls
   , renderObstacles gs
+  , renderSoldiers gs
+  , renderBullets gs
   , renderSnake gs
   , renderFood gs
   , renderPowerUp gs
   , renderHUD gs
+  , renderHealthBar gs
   ]
 
 renderBackground :: Picture
@@ -224,15 +227,96 @@ renderPowerUp gs = case powerPos gs of
   Nothing -> blank
   Just (pt, pos) -> 
     let (x, y) = gridToScreen pos
+        pulse = 1.0 + 0.15 * sin (fromIntegral (score gs) * 0.3)
         (col1, col2, sym) = case pt of
           SpeedBoost -> (makeColorI 0 255 255 255, makeColorI 100 255 255 255, "⚡")
           ScoreMultiplier -> (makeColorI 255 150 0 255, makeColorI 255 200 100 255, "★")
-    in pictures
-      [ color col2 $ translate x y $ rotate 45 $ rectangleSolid (fromIntegral cellPixelSize + 4) (fromIntegral cellPixelSize + 4)
-      , color col1 $ translate x y $ rotate 45 $ rectangleSolid (fromIntegral cellPixelSize) (fromIntegral cellPixelSize)
-      , color white $ translate (x - 8) (y - 8) $ scale 0.15 0.15 $ text sym
-      ]
+          Heart -> (makeColorI 255 50 100 255, makeColorI 255 150 150 255, "♥")
+    in case pt of
+         Heart -> pictures
+           [ color (makeColorI 255 100 150 150) $ translate x y $ circleSolid (14 * pulse)
+           , color (makeColorI 255 50 100 255) $ translate x y $ renderHeart
+           , color (makeColorI 255 200 200 255) $ translate x y $ thickCircle 8 1.5
+           ]
+         _ -> pictures
+           [ color col2 $ translate x y $ rotate 45 $ rectangleSolid (fromIntegral cellPixelSize + 4) (fromIntegral cellPixelSize + 4)
+           , color col1 $ translate x y $ rotate 45 $ rectangleSolid (fromIntegral cellPixelSize) (fromIntegral cellPixelSize)
+           , color white $ translate (x - 8) (y - 8) $ scale 0.15 0.15 $ text sym
+           ]
 
+-- Render heart shape
+renderHeart :: Picture
+renderHeart = pictures
+  [ translate (-4) 2 $ circleSolid 5
+  , translate 4 2 $ circleSolid 5
+  , color (makeColorI 255 50 100 255) $ polygon [(-8, 0), (0, -10), (8, 0), (0, 2)]
+  ]
+
+-- Render soldiers
+renderSoldiers :: GameState -> Picture
+renderSoldiers gs = pictures $ map renderSoldier (soldiers gs)
+
+renderSoldier :: Soldier -> Picture
+renderSoldier soldier =
+  let (x, y) = gridToScreen (soldierPos soldier)
+      bodyColor = makeColorI 150 50 50 255  -- Dark red body
+      gunColor = makeColorI 80 80 80 255    -- Gray gun
+      uniformColor = makeColorI 100 40 40 255
+      
+      -- Body (circle)
+      body = color bodyColor $ translate x y $ circleSolid 9
+      
+      -- Uniform details
+      uniform = color uniformColor $ translate x y $ circleSolid 7
+      
+      -- Gun pointing in direction
+      gun = case soldierDir soldier of
+              U -> color gunColor $ translate x (y + 8) $ rectangleSolid 4 10
+              D -> color gunColor $ translate x (y - 8) $ rectangleSolid 4 10
+              L -> color gunColor $ translate (x - 8) y $ rectangleSolid 10 4
+              R -> color gunColor $ translate (x + 8) y $ rectangleSolid 10 4
+      
+      -- Helmet
+      helmet = color (makeColorI 60 60 60 255) $ translate x (y + 3) $ rectangleSolid 6 4
+      
+  in pictures [body, uniform, gun, helmet]
+
+-- Render bullets
+renderBullets :: GameState -> Picture
+renderBullets gs = pictures $ map renderBullet (bullets gs)
+
+renderBullet :: Bullet -> Picture
+renderBullet bullet =
+  let (x, y) = gridToScreen (bulletPos bullet)
+      bulletColor = makeColorI 255 255 0 255  -- Bright yellow
+      glowColor = makeColorI 255 200 0 150    -- Orange glow
+  in pictures
+    [ color glowColor $ translate x y $ circleSolid 6
+    , color bulletColor $ translate x y $ circleSolid 4
+    , color white $ translate x y $ circleSolid 2
+    ]
+
+-- Render health bar
+renderHealthBar :: GameState -> Picture
+renderHealthBar gs =
+  let maxHealth = 10
+      currentHealth = health gs
+      barWidth = 180
+      barHeight = 18
+      fillWidth = (fromIntegral currentHealth / fromIntegral maxHealth) * barWidth
+      healthColor = if currentHealth > 7 then makeColorI 0 255 0 255
+                   else if currentHealth > 4 then makeColorI 255 200 0 255
+                   else makeColorI 255 0 0 255
+      xPos = 0  -- Centered between HIGH SCORE and LENGTH
+      yPos = fromIntegral windowHeight / 2 - 75  -- In the HUD panel
+  in pictures
+    [ color (makeColorI 40 40 60 255) $ translate xPos yPos $ rectangleSolid (barWidth + 4) (barHeight + 4)
+    , color (makeColorI 60 60 60 255) $ translate xPos yPos $ rectangleSolid barWidth barHeight
+    , color healthColor $ translate (xPos - (barWidth - fillWidth) / 2) yPos $ rectangleSolid fillWidth barHeight
+    , color white $ translate (xPos - 100) (yPos - 20) $ scale 0.15 0.15 $ text "HEALTH"
+    , color white $ translate (xPos + 60) (yPos - 20) $ scale 0.15 0.15 $ text $ show currentHealth ++ "/10"
+    , color (makeColorI 255 255 255 150) $ translate xPos yPos $ rectangleWire barWidth barHeight
+    ]
 renderHUD :: GameState -> Picture
 renderHUD gs = pictures
   [ renderScorePanel gs
@@ -270,6 +354,7 @@ renderHUD gs = pictures
         let (col, name) = case pt of
               SpeedBoost -> (makeColorI 0 255 255 255, "SPEED BOOST")
               ScoreMultiplier -> (makeColorI 255 150 0 255, "SCORE x2")
+              Heart -> (makeColorI 255 50 100 255, "HEALTH RESTORED")  -- Heart doesn't activate but include for completeness
             barWidth = (powerTimer gs / 5.0) * 200
         in pictures
           [ color (makeColorI 20 20 40 220) $ translate 450 (fromIntegral windowHeight / 2 - 50) $ rectangleSolid 260 80

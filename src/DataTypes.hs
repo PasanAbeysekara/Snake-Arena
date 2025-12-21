@@ -7,8 +7,22 @@ import Graphics.Gloss.Interface.Pure.Game (Picture)
 data Direction = U | D | L | R
   deriving (Show, Eq, Read)
 
+-- | Soldier that shoots bullets
+data Soldier = Soldier
+  { soldierPos :: Position
+  , soldierDir :: Direction
+  , shootTimer :: Float  -- Time until next shot
+  } deriving (Show, Eq)
+
+-- | Bullet fired by soldiers
+data Bullet = Bullet
+  { bulletPos :: Position
+  , bulletDir :: Direction
+  , bulletSpeed :: Float  -- Movement accumulator
+  } deriving (Show, Eq)
+
 -- | Types of power-ups available
-data PowerType = SpeedBoost | ScoreMultiplier
+data PowerType = SpeedBoost | ScoreMultiplier | Heart
   deriving (Show, Eq)
 
 -- | Difficulty levels
@@ -45,6 +59,9 @@ data GameState = GameState
   , moveHistory :: [Direction]    -- History of moves for replay
   , obstacles   :: [Position]     -- Obstacle positions that snake cannot pass
   , difficulty  :: Difficulty     -- Current difficulty level
+  , health      :: Int            -- Snake's armor health (max 10)
+  , soldiers    :: [Soldier]      -- Active soldiers on the field
+  , bullets     :: [Bullet]       -- Active bullets in the air
   }
 
 -- | Replay data structure for storage
