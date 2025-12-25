@@ -5,6 +5,12 @@ A pure-functional real-time Snake game with a graphical UI and Replay Analytics,
 ## Overview
 Snake Arena allows players to control a snake on a 2D grid, collecting food and power-ups while avoiding collisions. It features a completely pure game loop, replay logging, and an analytics pipeline.
 
+<img src="./docs/game-menu.png" alt="Game Menu" style="display: block; margin: 0 auto;">
+
+
+<img src="./docs/gameplay.png" alt="Game Play" style="display: block; margin: 0 auto;">
+
+
 ## Features
 - **Pure Functional Logic**: Game state updates are deterministic and pure.
 - **Graphical UI**: Built with `gloss`.
