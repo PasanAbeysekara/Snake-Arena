@@ -3,6 +3,13 @@
 ## 1. Introduction
 Snake Arena is a graphical implementation of the classic Snake game, designed to demonstrate functional programming principles in a state-heavy real-time application. The goal was to build a playable game using a "pure core, thin shell" architecture, separating the pure game logic from the side-effects of rendering and user input.
 
+<img src="./docs/game-menu.png" alt="Game Menu" style="display: block; margin: 0 auto;">
+
+---
+
+<img src="./docs/gameplay.png" alt="Game Play" style="display: block; margin: 0 auto;">
+
+
 ## 2. Industry Motivation
 Real-world systems, such as financial exchanges or reliable simulation engines, benefit from deterministic state transitions. By modeling the application state as an immutable record and transformations as pure functions, we gain:
 - **Testability**: Any state can be unit-tested without complex setup.
