@@ -353,7 +353,7 @@ aggregateStats rs =
 
 ### 5. **Composability**
 - Small, pure functions compose into complex behavior
-- Easy to add new features by composing existing functionsA
+- Easy to add new features by composing existing functions
 - Modular design supports incremental development
 
 ## Performance Considerations
